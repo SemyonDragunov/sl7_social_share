@@ -1,0 +1,10 @@
+name = Поделиться
+description = Кнопки "Поделиться" в социальных сетях.
+package = SL7
+version = 7.x-1.0
+core = 7.x
+
+configure = admin/control-panel/social/share
+
+dependencies[] = sl7_control_panel
+dependencies[] = jquery_update

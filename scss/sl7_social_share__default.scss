@@ -1,0 +1,167 @@
+@import "../bower_components/bourbon/app/assets/stylesheets/bourbon";
+@import "../bower_components/susy/sass/susy";
+
+$small-screen-breakpoint: (
+  max-width: 1200px,
+);
+
+$big-screen-breakpoint: (
+  min-width: 1201px,
+);
+
+$size-button: 30px;
+$size-icon: $size-button - 9;
+
+@mixin social-widget($name, $color, $img) {
+  > .social-likes__widget_#{$name} {
+    background-color: $color;
+
+    &:hover,
+    &:focus {
+      background-color: lighten($color, 10%);
+    }
+
+    .social-likes__icon {
+      background: url($img) no-repeat center center / contain;
+    }
+  }
+}
+
+#social-share[data-theme=sl7_default] {
+  position: fixed;
+  color: white;
+  z-index: 10010;
+
+  @include susy-breakpoint($small-screen-breakpoint) {
+    bottom: 0;
+  }
+
+  @include susy-breakpoint($big-screen-breakpoint) {
+    @include transform(translate(0px, -50%));
+    top: 50%;
+  }
+
+  &[data-style=left] {
+    left: 0;
+
+    > .social-likes__widget {
+      @include transform(translate(-100px, 0));
+    }
+
+    > .toggle {
+      span.icon {
+        @include transform(rotate(0deg));
+      }
+    }
+    &.open {
+      > .toggle {
+        span.icon {
+          @include transform(rotate(-180deg));
+        }
+      }
+    }
+  }
+  &[data-style=right] {
+    right: 0;
+
+    > .social-likes__widget {
+      @include transform(translate(100px, 0));
+    }
+
+    > .toggle {
+      right: 0 !important;
+
+      span.icon {
+        @include transform(rotate(-180deg));
+      }
+    }
+    &.open {
+      > .toggle {
+        span.icon {
+          @include transform(rotate(0deg));
+        }
+      }
+    }
+  }
+
+  &:not(.open) {
+    > .social-likes__widget {
+      @include size(0);
+      padding: 0 !important;
+      display: none;
+    }
+
+    &:hover,
+    &:focus {
+      > .social-likes__widget {
+        width: 0 !important;
+      }
+    }
+  }
+
+  &.open {
+    > .social-likes__widget {
+      @include transform(translate(0, 0));
+      @include size($size-button);
+    }
+  }
+
+  > div {
+    @include size($size-button);
+    @include transition(all 0.3s ease-in-out);
+    cursor: pointer;
+    position: relative;
+    padding: 5px;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+
+    .social-likes__icon {
+      @include size($size-icon);
+      display: block;
+      float: left;
+    }
+  }
+
+  .social-likes__counter {
+    @include transition(all 0.1s ease-in-out 0.1s);
+    position: fixed;
+    right: 5px;
+    line-height: $size-icon;
+    opacity: 0;
+    float: left;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  &:hover,
+  &:focus {
+    > div {
+      width: $size-button + 30px !important;
+    }
+
+    .social-likes__counter {
+      opacity: 1;
+    }
+  }
+
+  > .toggle {
+    background-color: #1D1F20;
+    bottom: 0 !important;
+
+    span.icon {
+      @include size($size-icon);
+      @include transition(all 0.3s linear);
+      background: url("../img/arrow.svg") no-repeat center center / contain;
+      display: block;
+    }
+  }
+
+  @include social-widget(vkontakte, #5B7FA6, "../img/vkontakte.svg");
+  @include social-widget(facebook, #3A5795, "../img/facebook.svg");
+  @include social-widget(twitter, #55ACEE, "../img/twitter.svg");
+  @include social-widget(mailru, #168DE2, "../img/mailru.svg");
+  @include social-widget(odnoklassniki, #EB722E, "../img/odnoklassniki.svg");
+  @include social-widget(plusone, #dd4b39, "../img/plusone.svg");
+  @include social-widget(pinterest, #CB132D, "../img/pinterest.svg");
+}

@@ -1,0 +1,23 @@
+<?php
+
+/**
+* Implements hook_install().
+*/
+function sl7_social_share_install() {
+  // Установка пустого конфига, чтобы все методы отображались изначально.
+  variable_set('sl7_social_share_method_access', array());
+}
+/**
+ * Implements hook_uninstall().
+ */
+function sl7_social_share_uninstall() {
+  // Удаление переменных.
+  $result = db_select('variable', 'v')
+    ->fields('v', array('name'))
+    ->condition('name', 'sl7_social_share_%', 'LIKE')
+    ->execute();
+
+  foreach ($result as $row) {
+    variable_del($row->name);
+  }
+}

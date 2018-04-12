@@ -1,0 +1,328 @@
+<?php
+
+/**
+ * @file
+ * SL7 Social Group module.
+ *
+ * @author Semyon Dragunov <sam.dragunov@gmail.com>
+ * https://github.com/SemyonDragunov
+ */
+
+define('SL7_SOCIAL_SHARE_ADMIN_PATH', SL7_CONTROL_PANEL_ADMIN_PATH . '/social/share');
+
+/**
+ * Implement hook_menu().
+ */
+function sl7_social_share_menu() {
+
+  $items[SL7_SOCIAL_SHARE_ADMIN_PATH] = array(
+    'title' => 'Поделиться',
+    'description' => 'Настройки ссылок на социальные сети.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sl7_social_share_settings_form'),
+    'access arguments' => array('administer sl7_social_share'),
+  );
+
+  return $items;
+}
+
+/**
+ * Implement hook_permission().
+ */
+function sl7_social_share_permission() {
+  return array(
+    'administer sl7_social_share' => array(
+      'title' => 'Доступ к настройкам модуля.',
+    )
+  );
+}
+
+/**
+ * Implement hook_theme().
+ */
+function sl7_social_share_theme() {
+  $items = array(
+    'sl7_social_share__default' => array(
+      'template' => 'templates/sl7-social-share--default',
+    ),
+  );
+
+  foreach ($items as &$item) {
+    if (!isset($item['file'])) {
+      $item['file'] = 'templates/theme.inc';
+    }
+  }
+
+  return $items;
+}
+
+/**
+ * Implements hook_sl7_social_share_theme().
+ */
+function sl7_social_share_sl7_social_share_theme() {
+
+  $themes['sl7_default'] = array(
+    'title' => 'Стандартный',
+    'theme' => 'sl7_social_share__default',
+    'settings' => 'sl7_social_share_theme_default_setting',
+    'css' => drupal_get_path('module', 'sl7_social_share') . '/css/sl7_social_share__default.css',
+    'img' => drupal_get_path('module', 'sl7_social_share') . '/img/sl7_social_share__default.png',
+  );
+
+  return $themes;
+}
+
+/**
+ * Форма настроек стандартного шаблона.
+ *
+ * @param array $default_value
+ *  Массив со значениями, которые были установлены ранее.
+ *
+ * @return $form
+ */
+function sl7_social_share_theme_default_setting($default_value) {
+
+  $form['side'] = array(
+    '#type' => 'select',
+    '#title' => 'С какой стороны будет виджет?',
+    '#options' => array(
+      'left' => 'Слева',
+      'right' => 'Справа',
+    ),
+    '#default_value' => isset($default_value['side']) ? array($default_value['side']) : array('left'),
+  );
+
+  return $form;
+}
+
+/**
+ * Implements hook_page_build().
+ */
+function sl7_social_share_page_build(&$page) {
+  $theme_info = sl7_social_share_get_theme_info(variable_get('sl7_social_share_theme', 'sl7_default'));
+
+  if (!path_is_admin(current_path())) {
+    $page['page_bottom']['sl7_social_share'] = array(
+      '#markup' => theme($theme_info['theme']),
+      '#attached' => array(
+        'js' => array(
+          drupal_get_path('module', 'sl7_social_share') . '/vendors/social-likes/social-likes.min.js',
+          drupal_get_path('module', 'sl7_social_share') . '/js/sl7_social_share.js',
+        ),
+      ),
+    );
+    if ($theme_info['css'])
+      $page['page_bottom']['sl7_social_share']['#attached']['css'][] = $theme_info['css'];
+
+    if ($theme_info['js'])
+      $page['page_bottom']['sl7_social_share']['#attached']['js'][] = $theme_info['js'];
+  }
+}
+
+/**
+ * Получить информацию о шаблоне.
+ *
+ * @param null $theme
+ *  Ничего или название шаблона.
+ * @return array
+ *  Если аргумента $theme не пуст, вернёться массив с информацией о шаблоне.
+ *  Если аргумент пустой, то массив всех типов шаблонов, где ключ - это
+ *  название шаблона, а значение - массив с информацией о шаблоне.
+ */
+function sl7_social_share_get_theme_info($theme = NULL) {
+  $theme_info = &drupal_static(__FUNCTION__);
+
+  if (!isset($theme_info)) {
+    $theme_info = module_invoke_all('sl7_social_share_theme');
+
+    foreach ($theme_info as $name => $info) {
+      $theme_info[$name] += array(
+        'settings' => FALSE,
+        'js' => FALSE,
+        'css' => FALSE,
+      );
+    }
+  }
+
+  drupal_alter(__FUNCTION__, $theme_info);
+
+  if (array_key_exists($theme, $theme_info)) {
+    return $theme_info[$theme];
+  }
+
+  return $theme_info;
+}
+
+/**
+ * Получить список шаблонов.
+ *
+ * @param null $theme
+ *  Ничего или название шаблона.
+ * @return array
+ *  Если аргумента $theme не пуст, вернёться человекопонятное название.
+ *  Если аргумент пустой, то массив всех типов шаблонов, где ключ - это
+ *  название шаблона, а значение - человекопонятное название.
+ */
+function sl7_social_share_get_theme_name($theme = NULL) {
+  $theme_info = sl7_social_share_get_theme_info();
+  $theme_all = array();
+
+  foreach ($theme_info as $name => $payment) {
+    $theme_all[$name] = $payment['title'];
+  }
+
+  if (array_key_exists($theme, $theme_all)) {
+    return $theme_all[$theme];
+  }
+
+  return $theme_all;
+}
+
+/**
+ * Возвращает список социальных сетей, доступных для шаринга.
+ */
+function sl7_social_share_get_methods() {
+  return array(
+    'vkontakte' => 'Вконтакте',
+    'facebook' => 'Facebook',
+    'twitter' => 'Twitter',
+    'mailru' => 'Мой мир',
+    'odnoklassniki' => 'Одноклассники',
+    'plusone' => 'Google+',
+    'pinterest' => 'Pinterest',
+  );
+}
+
+function sl7_social_share_settings_form($form, &$form_state) {
+  $conf = variable_get('sl7_social_share_settings');
+  $theme_info = sl7_social_share_get_theme_info(variable_get('sl7_social_share_theme', 'sl7_default'));
+
+  $theme = isset($form_state['values']['theme']) ? $form_state['values']['theme'] : '';
+
+  if (!empty($theme)) {
+    $theme_info = sl7_social_share_get_theme_info($theme);
+  }
+
+  $form['#tree'] = TRUE;
+
+  $form['theme'] = array(
+    '#type' => 'select',
+    '#title' => 'Шаблон',
+    '#options' => sl7_social_share_get_theme_name(),
+    '#default_value' => variable_get('sl7_social_button_theme', 'sl7_default'),
+    '#ajax' => array(
+      'event' => 'change',
+      'wrapper' => 'theme-preview',
+      'callback' => 'sl7_social_button_theme_ajax_callback',
+      'method' => 'replace',
+      'progress' => array('type' => 'none'),
+    ),
+  );
+  $form['theme_wrapper'] = array(
+    '#prefix' => '<div id="theme-preview">',
+    '#suffix' => '</div>',
+  );
+  $form['theme_wrapper']['theme_preview'] = array(
+    '#markup' => '<img src="/' . $theme_info['img'] . '" />',
+  );
+  if ($theme_info['settings']) {
+    $form['theme_wrapper']['settings'] = call_user_func_array($theme_info['settings'], array(variable_get('sl7_social_share_theme_settings')));
+  }
+
+  $form['description'] = array(
+    '#markup' => '<p>Если не выбраны определённые социальные сети, то отображаться будут все.</p>',
+  );
+  $methods = sl7_social_share_get_methods();
+  foreach ($methods as $name => $title) {
+    $options[$name] = array(
+      'title' => $title,
+    );
+  }
+  $default_methods = variable_get('sl7_social_share_method_access');
+  $header = array(
+    'title' => 'Социальная сеть',
+  );
+  $form['methods'] = array(
+    '#type' => 'tableselect',
+    '#header' => $header,
+    '#options' => $options,
+    '#default_value' => drupal_map_assoc($default_methods),
+    '#empty' => 'Нет моциальных сетей для выбора.',
+  );
+
+  $form['settings'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Настройки сервисов',
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+  $form['settings']['twitter'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Twitter',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['settings']['twitter']['via'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Пользователь',
+    '#default_value' => isset($conf['twitter']['via']) ? $conf['twitter']['via'] : '',
+  );
+  $form['settings']['twitter']['related'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Описание',
+    '#default_value' => isset($conf['twitter']['related']) ? $conf['twitter']['related'] : '',
+  );
+  $form['settings']['pinterest'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Pinterest',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+  $form['settings']['pinterest']['media'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Специальное изображение',
+    '#description' => 'Вставляйте только адресс изображения (URL).',
+    '#default_value' => isset($conf['pinterest']['media']) ? $conf['pinterest']['media'] : '',
+  );
+
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Сохранить',
+    '#weight' => 999,
+  );
+
+  return $form;
+}
+
+function sl7_social_share_settings_form_validate($form, &$form_state) {
+  if (!valid_url($form_state['values']['settings']['pinterest']['media'], TRUE) && !empty($form_state['values']['settings']['pinterest']['media'])) {
+    form_set_error('settings][pinterest][media','Неправильный адрес изображения');
+  }
+}
+
+function sl7_social_share_settings_form_submit($form, &$form_state) {
+  form_state_values_clean($form_state);
+
+  $conf = array();
+  foreach ($form_state['values']['settings'] as $key => $value) {
+    if (!empty($value)) {
+      if (is_array($value) && isset($form_state['values']['array_filter'])) {
+        $value = array_keys(array_filter($value));
+      }
+      $conf[$key] = $value;
+    }
+  }
+
+  if ($form_state['values']['theme_wrapper']['settings']) {
+    variable_set('sl7_social_share_theme_settings', $form_state['values']['theme_wrapper']['settings']);
+  }
+  variable_set('sl7_social_share_method_access', array_filter($form_state['values']['methods']));
+  variable_set('sl7_social_share_theme', $form_state['values']['theme']);
+  variable_set('sl7_social_share_settings', $conf);
+  drupal_set_message(t('The configuration options have been saved.'));
+}
+
+function sl7_social_button_theme_ajax_callback($form, &$form_state) {
+  return $form['theme_wrapper'];
+}
